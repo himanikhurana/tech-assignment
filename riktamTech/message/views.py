@@ -1,8 +1,9 @@
-from django.shortcuts import render
-from django.http import HttpResponse
+from django.shortcuts import render, get_object_or_404
+from django.http import HttpResponse, JsonResponse
 import json
 from django.core.serializers.json import DjangoJSONEncoder
 from .models import Message
+from ..group.models import Group
 # Create your views here.
 
 
@@ -10,12 +11,19 @@ def sendMessage(request):
     if request.method == "POST":
         requestBody = json.loads(request.body)
 
+        # Get the group based on the group_id
+        group = get_object_or_404(Group, id=requestBody['groupId'])
+
+        # Check if the user is a member of the group
+        if request.user not in group.members.all():
+            return JsonResponse({'error': 'You are not a member of this group.'}, status=403)
+
         newMessage = Message(message=requestBody['message'],
-                             groupId=requestBody['groupId'],
-                             sentBy=requestBody['sentBy'],
-                             sentTime=requestBody['sentTime'],
-                             likes=0,
-                             likedBy="")
+                                groupId=requestBody['groupId'],
+                                sentBy=requestBody['sentBy'],
+                                sentTime=requestBody['sentTime'],
+                                likes=0,
+                                likedBy="")
 
         newMessage.save()
 
